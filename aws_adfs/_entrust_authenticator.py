@@ -22,13 +22,24 @@ def extract(html_response, ssl_verification_enabled, session):
 
     roles_page_url = _action_url_on_validation_success(html_response)
 
+    # Ensure that we're dealing with a token authenticator
+    if html_response.find('.//div[@id="authResponseControls"]') is None:
+        raise click.ClickException(
+            u'Unsupported authentication type; Only challenge/response is supported'
+        )
+    elif html_response.find('.//div[@id="pvnControls"][@style="display:normal"]') is not None: 
+        raise click.ClickException(
+            u'Authentication requiring PVN is not supported'
+        )
+
     question_label_element = html_response.find('.//label[@for="authResponse"]')
     if question_label_element is not None:
         click.echo(''.join(question_label_element.xpath('text()|*/text()')))
 
-    entrust_token = click.prompt(text='Enter your Entrust token', type=str)
+    entrust_token = click.prompt(text='Enter your Entrust challenge response', type=str)
 
     click.echo('Going for aws roles', err=True)
+
     return _retrieve_roles_page(
         roles_page_url,
         _context(html_response),
